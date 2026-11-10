@@ -1,0 +1,256 @@
+<div class="wpb_wrapper">
+			
+  <!-- 1. Φόρτωση Clappr Player -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+
+  <!-- 2. Τα εντυπωσιακά Στυλ για το Κουμπί και την Κουρτίνα -->
+  <style>
+   /* Το Κουμπί ΣΙΝΕΜΑ με τα κύματα χρωμάτων */
+   .cinema-trigger-btn {
+     background: #111;
+     border: 2px solid #005aff;
+     padding: 15px 40px;
+     font-size: 22px;
+     font-weight: bold;
+     letter-spacing: 2px;
+     border-radius: 30px;
+     cursor: pointer;
+     box-shadow: 0 4px 15px rgba(0, 90, 255, 0.4);
+     font-family: 'Arial Black', Gadget, sans-serif;
+     transition: transform 0.2s, box-shadow 0.2s;
+     
+     /* Εφέ κυμάτων χρωμάτων στα γράμματα */
+     background-image: linear-gradient(to right, #005aff, #ff007f, #7f00ff, #00f0ff, #005aff);
+     background-size: 200% auto;
+     color: transparent;
+     -webkit-background-clip: text;
+     background-clip: text;
+     animation: colorWave 3s linear infinite;
+   }
+   .cinema-trigger-btn:hover {
+     transform: scale(1.05);
+     box-shadow: 0 6px 20px rgba(0, 90, 255, 0.6);
+   }
+   @keyframes colorWave {
+     0% { background-position: 0% center; }
+     100% { background-position: 200% center; }
+   }
+
+   /* Η Κουρτίνα που πέφτει από πάνω προς τα κάτω */
+   .cinema-curtain {
+     position: fixed;
+     top: -100%; /* Ξεκινάει κρυμμένη πάνω */
+     left: 0;
+     width: 100%;
+     height: 100%;
+     background: rgba(10, 10, 10, 0.98);
+     z-index: 999999;
+     transition: top 0.6s cubic-bezier(0.77, 0, 0.175, 1); /* Ομαλή κίνηση κουρτίνας */
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     box-sizing: border-box;
+     padding: 20px;
+   }
+   .cinema-curtain.open {
+     top: 0; /* Πέφτει μέχρι κάτω */
+   }
+
+   /* Κουμπί για να κλείνει η κουρτίνα */
+   .close-cinema-btn {
+     position: absolute;
+     top: 20px;
+     left: 20px;
+     background: #ff0101;
+     color: #fff;
+     border: none;
+     padding: 8px 18px;
+     font-size: 14px;
+     font-weight: bold;
+     border-radius: 4px;
+     cursor: pointer;
+     font-family: Arial, sans-serif;
+     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+   }
+
+   /* Ο γνώριμος κώδικας του Player */
+   .player-wrapper { position: relative; width: 100%; max-width: 800px; background: #000; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.8); }
+   #clappr { width: 100%; height: 100%; position: relative; min-height: 450px; background: #000; }
+   .menu-btn { position: absolute; top: 15px; right: 15px; background: rgba(0, 90, 255, 0.9); color: #fff; border: none; padding: 10px 15px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; z-index: 99999; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: background 0.2s; }
+   .menu-btn:hover { background: rgba(0, 68, 204, 1); }
+   .playlist-sidebar { position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: rgba(20, 20, 20, 0.95); z-index: 99999; transition: right 0.3s ease; padding: 15px; box-sizing: border-box; overflow-y: auto; color: #fff; font-family: Arial, sans-serif; border-left: 2px solid #005aff; }
+   .playlist-sidebar.open { right: 0; }
+   .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #444; }
+   .sidebar-title { font-size: 16px; font-weight: bold; text-align: left; }
+   .close-sidebar-btn { background: transparent; color: #fff; border: none; font-size: 22px; font-weight: bold; cursor: pointer; padding: 0 5px; line-height: 1; }
+   .close-sidebar-btn:hover { color: #ff0101; }
+   .playlist-item { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s; text-align: left; }
+   .playlist-item:hover { background: rgba(255, 255, 255, 0.1); }
+   .playlist-item.active { background: rgba(0, 90, 255, 0.3); border: 1px solid #005aff; }
+   .playlist-item img { width: 90px; height: 60px; object-fit: cover; border-radius: 4px; background: #222; }
+   .playlist-item .video-info { display: flex; flex-direction: column; justify-content: center; }
+   .playlist-item .video-title { font-size: 13px; font-weight: bold; line-height: 1.3; color: #fff; }
+  </style>
+
+  <!-- 3. Το Κουμπί στην κανονική σελίδα -->
+  <div style="text-align: center; padding: 40px 0;">
+    <button type="button" id="openCinemaBtn" class="cinema-trigger-btn">🎬 ΣΙΝΕΜΑ</button>
+  </div>
+
+  <!-- 4. Η Κουρτίνα και ο ενσωματωμένος Player -->
+  <div id="cinemaCurtain" class="cinema-curtain">
+    <!-- Κουμπί Κλεισίματος Κουρτίνας -->
+    <button type="button" id="closeCurtainBtn" class="close-cinema-btn">✖ Επιστροφή</button>
+    
+    <!-- Ο γνώριμος Player -->
+    <div class="player-wrapper">
+      <button type="button" id="toggleMenuBtn" class="menu-btn">☰ Λίστα Ταινιών</button>
+      <div id="clappr"></div>
+      <div id="playlistSidebar" class="playlist-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">Επιλογή Ταινίας</div>
+          <button type="button" id="closeSidebarBtn" class="close-sidebar-btn">×</button>
+        </div>
+        <div id="playlistItemsContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Η JavaScript Πλοήγησης και Λίστας -->
+  <script>
+   var customPlaylist = [
+     {
+       title: "Αχ Αυτή Η Γυναίκα Μου",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia903202.us.archive.org/26/items/20251217_20251217_0644/%CE%91%CF%87%20%CE%B1%CF%85%CF%84%CE%AE%20%CE%B7%20%CE%B3%CF%85%CE%BD%CE%B1%CE%AF%CE%BA%CE%B1%20%CE%BC%CE%BF%CF%85.mp4"
+     },
+     {
+       title: "Η Θεία Μου Η Χίπισσα",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia801002.us.archive.org/29/items/20250825_20250825_1737/%CE%97%20%CE%B8%CE%B5%CE%AF%CE%B1%20%CE%BC%CE%BF%CF%85%20%CE%B7%20%CF%87%CE%AF%CF%80%CE%B9%CF%83%CF%83%CE%B1.mp4"
+     },
+     {
+       title: "Σουλιώτες",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia600902.us.archive.org/6/items/20250908_20250908_0734/%CE%A3%CE%BF%CF%85%CE%BB%CE%B9%CF%8E%CF%84%CE%B5%CF%82.mp4"
+     },
+     {
+       title: "Το Κοροϊδάκι Της Δεσποινίδος",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://dn711307.ca.archive.org/0/items/20250409_20250409_1637/%CE%A4%CE%BF%20%CE%BA%CE%BF%CF%81%CE%BF%CF%8A%CE%B4%CE%AC%CE%BA%CE%B9%20%CF%84%CE%B7%CF%82%20%CE%B4%CE%B5%CF%83%CF%80%CE%BF%CE%B9%CE%BD%CE%AF%CE%B4%CE%BF%CF%82.mp4"
+     },
+     {
+       title: "Καπετάν Φάντης Μπαστούνης",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia801809.us.archive.org/19/items/20251112_20251112_1634/%CE%9A%CE%B1%CF%80%CE%B5%CF%84%CE%AC%CE%BD%20%CE%A6%CE%AC%CE%BD%CF%84%CE%B7%CF%82%20%CE%9C%CF%80%CE%B1%CF%83%CF%84%CE%BF%CF%8D%CE%BD%CE%B7%CF%82.mp4"
+     },
+     {
+       title: "Ούτε Γάτα Ούτε Ζημιά",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia801405.us.archive.org/16/items/u_20250826_20250826_1030/%CE%9F%CF%8D%CF%84%CE%B5%20%CE%B3%CE%AC%CF%84%CE%B1%20%CE%BF%CF%8D%CF%84%CE%B5%20%CE%B6%CE%B7%CE%BC%CE%B9%CE%AC.mp4"
+     },
+     {
+       title: "Είκοσι Γυναίκες Και Εγώ",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia600103.us.archive.org/27/items/20250401_20250401_1741/%CE%95%CE%AF%CE%BA%CE%BF%CF%83%CE%B9%20%CE%B3%CF%85%CE%BD%CE%B1%CE%AF%CE%BA%CE%B5%CF%82%20%CE%BA%CE%B1%CE%B9%20%CE%B5%CE%B3%CF%8E.mp4"
+     },
+     {
+       title: "Ένας Μεγάλος Έρωτας",
+       image: "https://www.more.com/getattachment/c9bc1844-d7bc-4cf4-8d8f-54e3ed56c9fa/viva-tickets.png", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia800906.us.archive.org/14/items/20250825_20250825_1700/%CE%88%CE%BD%CE%B1%CF%82%20%CE%BC%CE%B5%CE%B3%CE%AC%CE%BB%CE%BF%CF%82%20%CE%AD%CF%81%CF%89%CF%84%CE%B1%CF%82.mp4"
+     },
+     {
+       title: "Χτυποκάρδια Στο Θρανίο (Έγχρωμη)",
+       image: "https://www.filmy.gr/wp-content/uploads/2020/03/Heartbeats-at-the-Desk.jpg", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://ia800101.us.archive.org/21/items/u_20251212_20251212/%CE%A7%CF%84%CF%85%CF%80%CE%BF%CE%BA%CE%AC%CF%81%CE%B4%CE%B9%CE%B1%20%CF%83%CF%84%CE%BF%20%CE%B8%CF%81%CE%B1%CE%BD%CE%AF%CE%BF%20%28%CE%88%CE%B3%CF%87%CF%81%CF%89%CE%BC%CE%B7%29.ia.mp4"
+     },
+     {
+       title: "Κατάχρησις Εξουσίας (1971)",
+       image: "https://www.filmy.gr/wp-content/uploads/2023/03/Abuse-of-Power-1971-51.jpg", // Μπορείτε να βάλετε link από οποιαδήποτε εικόνα
+       source: "https://dn711404.ca.archive.org/0/items/20250515_20250515_0619/%CE%9A%CE%B1%CF%84%CE%AC%CF%87%CF%81%CE%B7%CF%83%CE%B9%CF%82%20%CE%B5%CE%BE%CE%BF%CF%85%CF%83%CE%AF%CE%B1%CF%82.mp4"
+     },
+     {
+       title: "Το Πιο Λαμπρό Αστέρι (1967)",
+       image: "https://www.filmy.gr/wp-content/uploads/2019/11/The-Brightest-Star-1967.jpg",
+       source: "https://ia601008.us.archive.org/15/items/u_20251211/%CE%A4%CE%BF%20%CF%80%CE%B9%CE%BF%20%CE%BB%CE%B1%CE%BC%CF%80%CF%81%CF%8C%20%CE%B1%CF%83%CF%84%CE%AD%CF%81%CE%B9.ia.mp4"
+     }
+   ];
+
+
+   var currentVideoIndex = 0;
+
+   // Δημιουργία του Player
+   var player = new Clappr.Player({
+    source: customPlaylist[currentVideoIndex].source,
+    parentId: "#clappr",
+    width: '100%',
+    height: '100%',
+    autoPlay: false
+   });
+
+   // Δημιουργία των στοιχείων της λίστας
+   var container = document.getElementById('playlistItemsContainer');
+   customPlaylist.forEach(function(video, index) {
+     var item = document.createElement('div');
+     item.className = 'playlist-item' + (index === 0 ? ' active' : '');
+     item.innerHTML = '<img src="' + video.image + '"><div class="video-info"><div class="video-title">' + video.title + '</div></div>';
+     
+     item.addEventListener('click', function() {
+       changeVideo(index);
+       document.getElementById('playlistSidebar').classList.remove('open');
+     });
+     container.appendChild(item);
+   });
+
+   function changeVideo(index) {
+     currentVideoIndex = index;
+     player.load(customPlaylist[currentVideoIndex].source);
+     player.play();
+     
+     var items = document.querySelectorAll('.playlist-item');
+     items.forEach(function(item, idx) {
+       if (idx === index) item.classList.add('active');
+       else item.classList.remove('active');
+     });
+   }
+
+   player.on(Clappr.Events.PLAYER_ENDED, function() {
+     if (currentVideoIndex < customPlaylist.length - 1) {
+       changeVideo(currentVideoIndex + 1);
+     }
+   });
+
+   /* --- CONTROL ΚΟΥΡΤΙΝΑΣ --- */
+   // Άνοιγμα κουρτίνας (Πέφτει από πάνω)
+   document.getElementById('openCinemaBtn').addEventListener('click', function() {
+     document.getElementById('cinemaCurtain').classList.add('open');
+   });
+
+   // Κλείσιμο κουρτίνας (Ανεβαίνει πάνω και κάνει Pause το βίντεο)
+   document.getElementById('closeCurtainBtn').addEventListener('click', function() {
+     document.getElementById('cinemaCurtain').classList.remove('open');
+     player.pause(); // Κάνει παύση στην ταινία όταν βγαίνουμε από το σινεμά
+   });
+
+   /* --- CONTROL SIDEBAR --- */
+   document.getElementById('toggleMenuBtn').addEventListener('click', function(e) {
+     document.getElementById('playlistSidebar').classList.toggle('open');
+     e.stopPropagation();
+   });
+
+   document.getElementById('closeSidebarBtn').addEventListener('click', function(e) {
+     document.getElementById('playlistSidebar').classList.remove('open');
+     e.stopPropagation();
+   });
+
+   document.addEventListener('click', function(e) {
+     var sidebar = document.getElementById('playlistSidebar');
+     var btn = document.getElementById('toggleMenuBtn');
+     if (sidebar && !sidebar.contains(e.target) && e.target !== btn) {
+       sidebar.classList.remove('open');
+     }
+   });
+  </script>            
+
+</div>
